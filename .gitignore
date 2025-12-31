@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+.venv/
+
+# 環境変数
+.env
+.env.local
+
+# データファイル（ダミーデータは除外）
+data/out/*.jsonl
+data/reports/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Streamlit
+.streamlit/secrets.toml
+
+# ログ
+*.log
+
