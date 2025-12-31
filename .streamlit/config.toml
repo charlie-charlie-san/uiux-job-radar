@@ -1,0 +1,15 @@
+[theme]
+# 白背景ベース
+backgroundColor = "#FFFFFF"
+secondaryBackgroundColor = "#F8F9FC"
+
+# 紺色（ベースカラー）
+primaryColor = "#1E3A5F"
+textColor = "#1E3A5F"
+
+# フォント
+font = "sans serif"
+
+[server]
+headless = true
+

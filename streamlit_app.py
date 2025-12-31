@@ -1,6 +1,13 @@
 """
 UI/UX求人レーダー - 営業リストビューア
-Streamlit App（キーエンス式 即日アプローチ対応）
+Streamlit App（Premium UI Design）
+
+Color Palette:
+- Background: #FFFFFF (White)
+- Base: #1E3A5F (Navy)
+- Accent: #FF6B35 (Orange)
+- Success: #28A745
+- Warning: #FFC107
 """
 
 import json
@@ -13,6 +20,180 @@ import pandas as pd
 # === 設定 ===
 DATA_PATH = Path(__file__).parent / "data" / "out" / "jobs_norm.jsonl"
 TOP_N = 20
+
+# === カラーパレット ===
+COLORS = {
+    "navy": "#1E3A5F",
+    "navy_light": "#2D5A8B",
+    "orange": "#FF6B35",
+    "orange_light": "#FF8C5A",
+    "white": "#FFFFFF",
+    "gray_light": "#F8F9FC",
+    "gray": "#E9ECEF",
+    "text": "#1E3A5F",
+    "text_muted": "#6C757D",
+    "success": "#28A745",
+    "warning": "#FFC107",
+}
+
+
+# === カスタムCSS ===
+def apply_custom_css():
+    st.markdown(f"""
+    <style>
+        /* 全体のフォント・背景 */
+        .stApp {{
+            background-color: {COLORS['white']};
+            font-family: 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', sans-serif;
+        }}
+        
+        /* ヘッダー */
+        .main-header {{
+            background: linear-gradient(135deg, {COLORS['navy']} 0%, {COLORS['navy_light']} 100%);
+            color: white;
+            padding: 1.5rem 2rem;
+            border-radius: 12px;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 4px 6px rgba(30, 58, 95, 0.1);
+        }}
+        
+        .main-header h1 {{
+            margin: 0;
+            font-size: 1.8rem;
+            font-weight: 700;
+        }}
+        
+        .main-header p {{
+            margin: 0.5rem 0 0 0;
+            opacity: 0.9;
+            font-size: 0.95rem;
+        }}
+        
+        /* メトリクスカード */
+        .metric-card {{
+            background: {COLORS['white']};
+            border: 1px solid {COLORS['gray']};
+            border-radius: 12px;
+            padding: 1.2rem;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+            transition: all 0.2s ease;
+        }}
+        
+        .metric-card:hover {{
+            border-color: {COLORS['orange']};
+            box-shadow: 0 4px 12px rgba(255, 107, 53, 0.15);
+        }}
+        
+        .metric-card.highlight {{
+            border-color: {COLORS['orange']};
+            background: linear-gradient(135deg, #FFF5F0 0%, {COLORS['white']} 100%);
+        }}
+        
+        .metric-value {{
+            font-size: 2rem;
+            font-weight: 700;
+            color: {COLORS['navy']};
+            line-height: 1.2;
+        }}
+        
+        .metric-value.orange {{
+            color: {COLORS['orange']};
+        }}
+        
+        .metric-label {{
+            font-size: 0.85rem;
+            color: {COLORS['text_muted']};
+            margin-top: 0.3rem;
+        }}
+        
+        /* HOTバッジ */
+        .badge {{
+            display: inline-block;
+            padding: 0.25rem 0.6rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-right: 0.3rem;
+        }}
+        
+        .badge-hot {{
+            background: linear-gradient(135deg, {COLORS['orange']} 0%, #FF8C5A 100%);
+            color: white;
+        }}
+        
+        .badge-new {{
+            background: {COLORS['navy']};
+            color: white;
+        }}
+        
+        .badge-week {{
+            background: {COLORS['gray']};
+            color: {COLORS['navy']};
+        }}
+        
+        /* セクションタイトル */
+        .section-title {{
+            color: {COLORS['navy']};
+            font-size: 1.2rem;
+            font-weight: 700;
+            padding-bottom: 0.75rem;
+            border-bottom: 3px solid {COLORS['orange']};
+            margin-bottom: 1rem;
+            display: inline-block;
+        }}
+        
+        /* サイドバー */
+        [data-testid="stSidebar"] {{
+            background-color: {COLORS['gray_light']};
+        }}
+        
+        [data-testid="stSidebar"] .stRadio > label {{
+            color: {COLORS['navy']};
+            font-weight: 600;
+        }}
+        
+        /* ボタン */
+        .stDownloadButton > button {{
+            background: linear-gradient(135deg, {COLORS['navy']} 0%, {COLORS['navy_light']} 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 0.6rem 1.5rem;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }}
+        
+        .stDownloadButton > button:hover {{
+            background: linear-gradient(135deg, {COLORS['orange']} 0%, {COLORS['orange_light']} 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(255, 107, 53, 0.3);
+        }}
+        
+        /* データフレーム */
+        [data-testid="stDataFrame"] {{
+            border: 1px solid {COLORS['gray']};
+            border-radius: 12px;
+            overflow: hidden;
+        }}
+        
+        /* 区切り線 */
+        hr {{
+            border: none;
+            border-top: 1px solid {COLORS['gray']};
+            margin: 1.5rem 0;
+        }}
+        
+        /* Streamlitデフォルトの非表示 */
+        #MainMenu {{visibility: hidden;}}
+        footer {{visibility: hidden;}}
+        
+        /* プログレスバーの色 */
+        .stProgress > div > div > div > div {{
+            background: linear-gradient(90deg, {COLORS['navy']} 0%, {COLORS['orange']} 100%);
+        }}
+    </style>
+    """, unsafe_allow_html=True)
 
 
 # === データ読み込み ===
@@ -71,14 +252,14 @@ def _get_hot_badge(days_ago: int) -> str:
     elif days_ago <= 3:
         return "✨ 3日以内"
     elif days_ago <= 7:
-        return "🆕 1週間以内"
+        return "🆕 1週間"
     return ""
 
 
 def _format_posted_date(posted_date, days_ago: int) -> str:
     """掲載日を見やすくフォーマット"""
     if pd.isna(posted_date):
-        return "不明"
+        return "—"
     
     date_str = posted_date.strftime("%m/%d")
     
@@ -94,17 +275,37 @@ def _format_posted_date(posted_date, days_ago: int) -> str:
         return date_str
 
 
+def render_metric_card(label: str, value: str, highlight: bool = False, orange: bool = False):
+    """メトリクスカードをレンダリング"""
+    highlight_class = "highlight" if highlight else ""
+    value_class = "orange" if orange else ""
+    return f"""
+    <div class="metric-card {highlight_class}">
+        <div class="metric-value {value_class}">{value}</div>
+        <div class="metric-label">{label}</div>
+    </div>
+    """
+
+
 # === メイン ===
 def main():
     st.set_page_config(
         page_title="UI/UX求人レーダー",
         page_icon="🎯",
         layout="wide",
+        initial_sidebar_state="expanded",
     )
 
+    # カスタムCSS適用
+    apply_custom_css()
+
     # ヘッダー
-    st.title("🎯 UI/UX求人レーダー")
-    st.markdown("**営業リスト** - UI/UXデザイナー求人を出している企業を即日アプローチ！")
+    st.markdown("""
+    <div class="main-header">
+        <h1>🎯 UI/UX求人レーダー</h1>
+        <p>営業リスト - UI/UXデザイナー求人を出している企業を即日アプローチ！</p>
+    </div>
+    """, unsafe_allow_html=True)
 
     # データ読み込み
     df = load_data()
@@ -119,62 +320,72 @@ def main():
         return
 
     # === サイドバー: フィルター ===
-    st.sidebar.header("🔧 フィルター")
+    with st.sidebar:
+        st.markdown(f"### 🔧 フィルター")
+        
+        # ソート順選択
+        st.markdown("**並び順**")
+        sort_options = {
+            "🔥 新着順（即日アプローチ）": "newest",
+            "⭐ スコア順": "score",
+        }
+        selected_sort = st.radio(
+            "並び順を選択",
+            list(sort_options.keys()),
+            index=0,
+            label_visibility="collapsed",
+        )
+        sort_by = sort_options[selected_sort]
 
-    # ソート順選択
-    sort_options = {
-        "🔥 新着順（即日アプローチ推奨）": "newest",
-        "⭐ スコア順": "score",
-    }
-    selected_sort = st.sidebar.radio(
-        "並び順",
-        list(sort_options.keys()),
-        index=0,  # デフォルトは新着順
-    )
-    sort_by = sort_options[selected_sort]
+        st.markdown("---")
+        
+        # 新着フィルター
+        st.markdown("**📅 掲載日フィルター**")
+        freshness_options = {
+            "すべて": None,
+            "🔥 本日のみ": 0,
+            "⚡ 24時間以内": 1,
+            "✨ 3日以内": 3,
+            "🆕 1週間以内": 7,
+        }
+        selected_freshness = st.radio(
+            "掲載日を選択",
+            list(freshness_options.keys()),
+            label_visibility="collapsed",
+        )
+        max_days = freshness_options[selected_freshness]
 
-    # 新着フィルター
-    st.sidebar.markdown("---")
-    st.sidebar.subheader("📅 新着フィルター")
-    
-    freshness_options = {
-        "すべて": None,
-        "🔥 本日のみ": 0,
-        "⚡ 24時間以内": 1,
-        "✨ 3日以内": 3,
-        "🆕 1週間以内": 7,
-    }
-    selected_freshness = st.sidebar.radio(
-        "掲載日",
-        list(freshness_options.keys()),
-    )
-    max_days = freshness_options[selected_freshness]
+        st.markdown("---")
+        
+        # スコア閾値
+        st.markdown("**📊 スコアフィルター**")
+        min_score = int(df["score"].min())
+        max_score = int(df["score"].max())
+        score_threshold = st.slider(
+            "最低スコア",
+            min_value=min_score,
+            max_value=max_score,
+            value=min_score,
+            step=5,
+        )
 
-    # スコア閾値
-    st.sidebar.markdown("---")
-    min_score = int(df["score"].min())
-    max_score = int(df["score"].max())
-    score_threshold = st.sidebar.slider(
-        "最低スコア",
-        min_value=min_score,
-        max_value=max_score,
-        value=min_score,
-        step=5,
-    )
+        st.markdown("---")
+        
+        # カテゴリフィルター
+        if "category" in df.columns:
+            st.markdown("**📁 カテゴリ**")
+            categories = ["すべて"] + sorted(df["category"].unique().tolist())
+            selected_category = st.selectbox("カテゴリを選択", categories, label_visibility="collapsed")
+        else:
+            selected_category = "すべて"
 
-    # カテゴリフィルター
-    if "category" in df.columns:
-        categories = ["すべて"] + sorted(df["category"].unique().tolist())
-        selected_category = st.sidebar.selectbox("カテゴリ", categories)
-    else:
-        selected_category = "すべて"
-
-    # リモートタイプフィルター
-    if "remote_type" in df.columns:
-        remote_types = ["すべて"] + sorted(df["remote_type"].unique().tolist())
-        selected_remote = st.sidebar.selectbox("リモートタイプ", remote_types)
-    else:
-        selected_remote = "すべて"
+        # リモートタイプフィルター
+        if "remote_type" in df.columns:
+            st.markdown("**🏠 リモートタイプ**")
+            remote_types = ["すべて"] + sorted(df["remote_type"].unique().tolist())
+            selected_remote = st.selectbox("リモートタイプを選択", remote_types, label_visibility="collapsed")
+        else:
+            selected_remote = "すべて"
 
     # === フィルター適用 ===
     filtered_df = df[df["score"] >= score_threshold].copy()
@@ -201,44 +412,38 @@ def main():
     # Top N
     filtered_df = filtered_df.head(TOP_N)
 
-    # === 本日掲載のハイライト ===
+    # === メトリクス ===
     if "days_ago" in df.columns:
         today_count = len(df[df["days_ago"] == 0])
         yesterday_count = len(df[df["days_ago"] == 1])
         week_count = len(df[df["days_ago"] <= 7])
+        avg_score = filtered_df['score'].mean() if not filtered_df.empty else 0
         
-        col1, col2, col3, col4, col5 = st.columns(5)
-        with col1:
-            st.metric("🔥 本日掲載", f"{today_count}件", 
-                     delta="即アプローチ！" if today_count > 0 else None)
-        with col2:
-            st.metric("⚡ 昨日掲載", f"{yesterday_count}件")
-        with col3:
-            st.metric("🆕 1週間以内", f"{week_count}件")
-        with col4:
-            if not filtered_df.empty:
-                st.metric("平均スコア", f"{filtered_df['score'].mean():.1f}")
-        with col5:
-            st.metric("全データ件数", f"{len(df)}件")
-    else:
-        col1, col2, col3, col4 = st.columns(4)
-        with col1:
-            st.metric("表示件数", f"{len(filtered_df)}件")
-        with col2:
-            if not filtered_df.empty:
-                st.metric("最高スコア", filtered_df["score"].max())
-        with col3:
-            if not filtered_df.empty:
-                st.metric("平均スコア", f"{filtered_df['score'].mean():.1f}")
-        with col4:
-            st.metric("全データ件数", f"{len(df)}件")
+        cols = st.columns(5)
+        
+        with cols[0]:
+            st.markdown(render_metric_card("🔥 本日掲載", f"{today_count}件", highlight=True, orange=True), unsafe_allow_html=True)
+        with cols[1]:
+            st.markdown(render_metric_card("⚡ 昨日掲載", f"{yesterday_count}件"), unsafe_allow_html=True)
+        with cols[2]:
+            st.markdown(render_metric_card("🆕 1週間以内", f"{week_count}件"), unsafe_allow_html=True)
+        with cols[3]:
+            st.markdown(render_metric_card("📊 平均スコア", f"{avg_score:.1f}"), unsafe_allow_html=True)
+        with cols[4]:
+            st.markdown(render_metric_card("📋 全データ", f"{len(df)}件"), unsafe_allow_html=True)
 
-    st.divider()
+    st.markdown("<br>", unsafe_allow_html=True)
 
     # === テーブル表示 ===
     if filtered_df.empty:
         st.warning("条件に一致する求人がありません。フィルターを調整してください。")
         return
+
+    # タイトル
+    if sort_by == "newest":
+        st.markdown('<p class="section-title">🔥 即日アプローチリスト（新着順）</p>', unsafe_allow_html=True)
+    else:
+        st.markdown('<p class="section-title">⭐ 営業リスト Top 20（スコア順）</p>', unsafe_allow_html=True)
 
     # 表示用カラムを整形
     display_columns = ["company_name", "job_title", "score"]
@@ -264,29 +469,18 @@ def main():
         "remote_type": "リモート",
         "employment_type": "雇用形態",
         "skills_text": "スキル",
-        "url": "求人URL",
+        "url": "URL",
     }
     display_df.columns = [column_names.get(c, c) for c in display_df.columns]
-
-    # URLをクリック可能に
-    display_df["求人URL"] = display_df["求人URL"].apply(
-        lambda x: f"[リンク]({x})" if x else ""
-    )
 
     # インデックスをリセット（1から開始）
     display_df = display_df.reset_index(drop=True)
     display_df.index = display_df.index + 1
 
-    # タイトル
-    if sort_by == "newest":
-        st.markdown("### 🔥 即日アプローチリスト（新着順）")
-    else:
-        st.markdown("### ⭐ 営業リスト Top 20（スコア順）")
-
     st.dataframe(
         display_df,
         use_container_width=True,
-        height=600,
+        height=550,
         column_config={
             "スコア": st.column_config.ProgressColumn(
                 "スコア",
@@ -294,13 +488,13 @@ def main():
                 max_value=100,
                 format="%d",
             ),
-            "求人URL": st.column_config.LinkColumn("求人URL"),
+            "URL": st.column_config.LinkColumn("URL", display_text="リンク"),
         },
     )
 
     # === ダウンロード ===
-    st.divider()
-
+    st.markdown("<br>", unsafe_allow_html=True)
+    
     # CSV用のカラム
     csv_columns = ["company_name", "job_title", "score"]
     if "posted_date" in filtered_df.columns:
@@ -313,7 +507,7 @@ def main():
     
     csv_str = csv_data.to_csv(index=False, encoding="utf-8-sig")
 
-    col1, col2 = st.columns(2)
+    col1, col2, col3 = st.columns([1, 1, 2])
     with col1:
         st.download_button(
             label="📥 CSVダウンロード",
@@ -330,7 +524,7 @@ def main():
                     today_csv["posted_date"] = today_csv["posted_date"].dt.strftime("%Y-%m-%d")
                 today_csv_str = today_csv.to_csv(index=False, encoding="utf-8-sig")
                 st.download_button(
-                    label="🔥 本日掲載のみダウンロード",
+                    label="🔥 本日分のみ",
                     data=today_csv_str,
                     file_name=f"uiux_today_{date.today().isoformat()}.csv",
                     mime="text/csv",
