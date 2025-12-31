@@ -3,6 +3,7 @@ UI/UX求人レーダー - 企業詳細
 """
 
 import sys
+from datetime import date
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -22,7 +23,7 @@ apply_custom_css()
 st.markdown("""
 <div class="main-header">
     <h1>🏢 企業詳細</h1>
-    <p>企業ごとの求人履歴・スコア傾向を確認</p>
+    <p>企業ごとの求人確認 → 提案文を生成</p>
 </div>
 """, unsafe_allow_html=True)
 
@@ -34,65 +35,34 @@ if df.empty:
     st.stop()
 
 # 企業リスト作成
-company_stats = df.groupby("company_name").agg({
-    "score": ["mean", "max", "count"],
-    "job_title": "first",
-}).reset_index()
-company_stats.columns = ["company_name", "avg_score", "max_score", "job_count", "latest_job"]
-company_stats = company_stats.sort_values("avg_score", ascending=False)
+company_list = sorted(df["company_name"].unique().tolist())
 
-# サイドバー: 企業選択
+# === サイドバー ===
 with st.sidebar:
     st.markdown("### 🏢 企業を選択")
-    
-    # 検索
-    search_query = st.text_input("🔍 企業名で検索", "")
-    
-    if search_query:
-        filtered_companies = company_stats[company_stats["company_name"].str.contains(search_query, case=False, na=False)]
-    else:
-        filtered_companies = company_stats
+    selected_company = st.selectbox(
+        "企業名",
+        company_list,
+        index=0,
+        label_visibility="collapsed",
+    )
     
     st.markdown("---")
-    st.markdown(f"**{len(filtered_companies)}社** が見つかりました")
     
-    # 企業リスト
-    selected_company = None
-    for _, row in filtered_companies.head(15).iterrows():
-        company = row["company_name"]
-        avg_score = row["avg_score"]
-        job_count = row["job_count"]
-        
-        if st.button(f"📍 {company[:15]}... ({avg_score:.0f}点)", key=f"btn_{company}", use_container_width=True):
-            selected_company = company
+    # 選択中の企業の統計
+    company_df = df[df["company_name"] == selected_company].sort_values("score", ascending=False)
+    
+    st.markdown(f"**{selected_company}**")
+    st.markdown(f"- 求人数: **{len(company_df)}件**")
+    st.markdown(f"- 平均スコア: **{company_df['score'].mean():.1f}**")
+    st.markdown(f"- 最高スコア: **{company_df['score'].max()}**")
 
-# メインエリア
-if selected_company is None and not filtered_companies.empty:
-    selected_company = filtered_companies.iloc[0]["company_name"]
+# === メインエリア ===
+col_left, col_right = st.columns([1, 1])
 
-if selected_company:
-    company_df = df[df["company_name"] == selected_company].sort_values("posted_date", ascending=False)
-    company_info = company_stats[company_stats["company_name"] == selected_company].iloc[0]
-    
-    # 企業サマリー
-    st.markdown(f'<p class="section-title">📊 {selected_company}</p>', unsafe_allow_html=True)
-    
-    col1, col2, col3, col4 = st.columns(4)
-    with col1:
-        st.metric("求人数", f"{int(company_info['job_count'])}件")
-    with col2:
-        st.metric("平均スコア", f"{company_info['avg_score']:.1f}")
-    with col3:
-        st.metric("最高スコア", f"{int(company_info['max_score'])}")
-    with col4:
-        if "days_ago" in company_df.columns:
-            recent = company_df[company_df["days_ago"] <= 7]
-            st.metric("直近1週間", f"{len(recent)}件")
-    
-    st.markdown("<br>", unsafe_allow_html=True)
-    
-    # 求人一覧
-    st.markdown(f'<p class="section-title">📋 求人一覧</p>', unsafe_allow_html=True)
+# --- 左カラム: 求人一覧 ---
+with col_left:
+    st.markdown(f'<p class="section-title">📋 {selected_company} の求人一覧</p>', unsafe_allow_html=True)
     
     for _, row in company_df.iterrows():
         score = row.get("score", 0)
@@ -127,10 +97,98 @@ if selected_company:
                     <p style="color: {COLORS['text_muted']}; margin: 0.5rem 0 0 0; font-size: 0.8rem;">{hot_badge} {posted_str}</p>
                 </div>
             </div>
-            {f'<a href="{url}" target="_blank" style="color: {COLORS["orange"]}; font-size: 0.85rem;">🔗 求人ページを見る</a>' if url else ''}
         </div>
         """, unsafe_allow_html=True)
 
-else:
-    st.info("左のサイドバーから企業を選択してください")
+# --- 右カラム: 提案文生成 ---
+with col_right:
+    st.markdown('<p class="section-title">✍️ 提案文を生成</p>', unsafe_allow_html=True)
+    
+    # 入力フォーム
+    st.markdown(f"**担当者ロール**")
+    role_options = ["採用責任者", "プロダクト責任者", "デザインマネージャー", "人事担当", "その他"]
+    target_role = st.selectbox("担当者ロール", role_options, label_visibility="collapsed")
+    
+    st.markdown("<br>", unsafe_allow_html=True)
+    
+    st.markdown(f"**提案テーマ**")
+    theme_options = [
+        "デザインシステム整備",
+        "UXリサーチ・ユーザーインタビュー",
+        "プロトタイピング・UI設計",
+        "プロダクトデザイン全般",
+        "デザイン組織立ち上げ支援",
+    ]
+    proposal_theme = st.selectbox("提案テーマ", theme_options, label_visibility="collapsed")
+    
+    st.markdown("<br>", unsafe_allow_html=True)
+    
+    st.markdown(f"**稼働イメージ**")
+    workstyle_options = [
+        "週5常駐、長期",
+        "週3-4常駐、3ヶ月〜",
+        "週2-3リモート併用、3ヶ月〜",
+        "フルリモート、スポット対応",
+        "プロジェクト単位（1-2ヶ月）",
+    ]
+    workstyle = st.selectbox("稼働イメージ", workstyle_options, label_visibility="collapsed")
+    
+    st.markdown("<br>", unsafe_allow_html=True)
+    
+    # 生成ボタン
+    if st.button("📝 提案文を生成", type="primary", use_container_width=True):
+        # 求人情報から抽出
+        top_job = company_df.iloc[0] if not company_df.empty else None
+        job_title = top_job.get("job_title", "UI/UXデザイナー") if top_job is not None else "UI/UXデザイナー"
+        skills_list = top_job.get("skills", []) if top_job is not None else []
+        skills_str = "、".join(skills_list[:3]) if skills_list else "Figma、デザインシステム"
+        
+        # テンプレート生成
+        proposal_text = f"""【ご提案】{selected_company}様 {proposal_theme}のご支援
 
+{target_role}様
+
+突然のご連絡失礼いたします。
+UI/UXデザイナーの派遣・業務委託を行っております、○○株式会社の△△と申します。
+
+貴社にて「{job_title}」を募集されているのを拝見し、
+ぜひ弊社のデザイナーをご紹介できればと思い、ご連絡いたしました。
+
+■ ご提案内容
+・テーマ：{proposal_theme}
+・稼働：{workstyle}
+・対応可能スキル：{skills_str} など
+
+■ 弊社デザイナーの強み
+・プロダクト開発経験豊富なシニアデザイナーが多数在籍
+・{proposal_theme}の実績多数
+・即戦力として早期立ち上げが可能
+
+ご興味をお持ちいただけましたら、
+候補者のポートフォリオをお送りさせていただきます。
+
+まずは15分程度のオンラインMTGにて、
+貴社のご状況をお伺いできればと存じます。
+
+ご検討のほど、よろしくお願いいたします。
+
+---
+○○株式会社
+△△（担当者名）
+TEL: 03-XXXX-XXXX
+Email: xxx@example.com
+"""
+        
+        st.session_state.generated_proposal = proposal_text
+    
+    # 生成結果表示
+    if "generated_proposal" in st.session_state:
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown(f"**生成された提案文**")
+        st.text_area(
+            "提案文",
+            st.session_state.generated_proposal,
+            height=400,
+            label_visibility="collapsed",
+        )
+        st.caption("💡 上のテキストエリアをクリックして Cmd+A → Cmd+C でコピーできます")
